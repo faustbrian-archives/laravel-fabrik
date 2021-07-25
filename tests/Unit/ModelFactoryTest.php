@@ -1,0 +1,162 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of Laravel Fabrik.
+ *
+ * (c) Konceiver <info@konceiver.dev>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+namespace Konceiver\Fabrik\Tests\Unit;
+
+use BadMethodCallException;
+use Illuminate\Support\Collection;
+use Konceiver\Fabrik\Tests\Factories\Post;
+use Konceiver\Fabrik\Tests\Factories\User;
+use Konceiver\Fabrik\Tests\Factories\UserFactory;
+use Konceiver\Fabrik\Tests\TestCase;
+
+/**
+ * @covers \Konceiver\Fabrik\ModelFactory
+ */
+class ModelFactoryTest extends TestCase
+{
+    /** @test */
+    public function it_gives_you_a_factory_instance(): void
+    {
+        $this->assertInstanceOf(UserFactory::class, UserFactory::new());
+    }
+
+    /** @test */
+    public function it_gives_you_a_factory_model_instance_that_was_created(): void
+    {
+        $this->assertInstanceOf(User::class, UserFactory::new()->create());
+    }
+
+    /** @test */
+    public function it_gives_you_multiple_factory_model_instances_that_are_created(): void
+    {
+        $this->assertInstanceOf(Collection::class, UserFactory::new()->times(3)->create());
+        $this->assertCount(3, UserFactory::new()->times(3)->create());
+    }
+
+    /** @test */
+    public function it_gives_you_multiple_factory_model_instances_that_are_unique_and_created(): void
+    {
+        $collection = UserFactory::new()->times(3)->create();
+
+        $this->assertInstanceOf(Collection::class, $collection);
+        $this->assertCount(3, $collection);
+        $this->assertCount(3, collect($collection)->pluck('name'));
+    }
+
+    /** @test */
+    public function it_gives_you_a_factory_model_instance_that_are_made(): void
+    {
+        $this->assertInstanceOf(User::class, UserFactory::new()->make());
+    }
+
+    /** @test */
+    public function it_gives_you_multiple_factory_model_instances_that_are_made(): void
+    {
+        $this->assertInstanceOf(Collection::class, UserFactory::new()->times(3)->make());
+        $this->assertCount(3, UserFactory::new()->times(3)->make());
+    }
+
+    /** @test */
+    public function it_gives_you_multiple_factory_model_instances_that_are_unique_and_made(): void
+    {
+        $collection = UserFactory::new()->times(3)->make();
+
+        $this->assertInstanceOf(Collection::class, $collection);
+        $this->assertCount(3, $collection);
+        $this->assertCount(3, collect($collection)->pluck('name'));
+    }
+
+    /** @test */
+    public function it_gives_you_a_factory_model_instance_that_is_raw(): void
+    {
+        $this->assertIsArray(UserFactory::new()->raw());
+    }
+
+    /** @test */
+    public function it_gives_you_multiple_factory_model_instances_that_are_raw(): void
+    {
+        $this->assertInstanceOf(Collection::class, UserFactory::new()->times(3)->raw());
+        $this->assertCount(3, UserFactory::new()->times(3)->raw());
+    }
+
+    /** @test */
+    public function it_gives_you_multiple_factory_model_instances_that_are_unique_and_raw(): void
+    {
+        $collection = UserFactory::new()->times(3)->raw();
+
+        $this->assertInstanceOf(Collection::class, $collection);
+        $this->assertCount(3, $collection);
+        $this->assertCount(3, collect($collection)->pluck('name'));
+    }
+
+    /** @test */
+    public function it_lets_you_overwrite_default_data(): void
+    {
+        $this->assertSame('John', UserFactory::new()->create(['name' => 'John'])->name);
+    }
+
+    /** @test */
+    public function it_gies_you_a_new_factory_when_using_times(): void
+    {
+        $factory = UserFactory::new();
+
+        $this->assertSame($factory, $factory->with(Post::class, 'posts'));
+        $this->assertNotSame($factory, $factory->times(3));
+    }
+
+    /** @test **/
+    public function it_lets_you_add_a_related_model(): void
+    {
+        $user = UserFactory::new()->with(Post::class, 'posts')->create();
+
+        $this->assertSame(1, $user->posts->count());
+        $this->assertInstanceOf(Post::class, $user->posts->first());
+    }
+
+    /** @test **/
+    public function it_lets_you_add_a_related_model_through_a_magic_method_call(): void
+    {
+        $user = UserFactory::new()->withPost()->create();
+
+        $this->assertSame(1, $user->posts->count());
+        $this->assertInstanceOf(Post::class, $user->posts->first());
+    }
+
+    /** @test **/
+    public function it_lets_you_add_multiple_related_models(): void
+    {
+        $user = UserFactory::new()->with(Post::class, 'posts', 4)->create();
+
+        $this->assertSame(4, $user->posts->count());
+        $this->assertInstanceOf(Post::class, $user->posts->first());
+    }
+
+    /** @test **/
+    public function it_lets_you_add_multiple_related_models_through_a_magic_method_call(): void
+    {
+        $user = UserFactory::new()->withPosts(4)->create();
+
+        $this->assertSame(4, $user->posts->count());
+        $this->assertInstanceOf(Post::class, $user->posts->first());
+    }
+
+    /** @test **/
+    public function it_throws_if_an_unknown_method_is_called(): void
+    {
+        $this->expectException(BadMethodCallException::class);
+        $this->expectExceptionMessage('Call to undefined method Konceiver\Fabrik\Tests\Factories\UserFactory::unknownMethod()');
+
+        UserFactory::new()->unknownMethod()->create();
+    }
+}
